@@ -1,0 +1,116 @@
+#include "DHTesp.h"
+#include <SPI.h>
+#include <ESP8266WiFi.h>
+DHTesp dht;
+char ssid[] = "TP-LINK_B789E8";     
+char pass[] = "123456789$$$$";  
+const String yourDevice = "Sensor_Server_Room@keyinhands.com"; // change it!
+int status = WL_IDLE_STATUS;
+char server[] = "192.168.1.110";
+WiFiClient client;
+ 
+void setup() {
+
+  Serial.begin(115200); 
+
+  WiFi.disconnect();
+
+  Serial.println("ESP8266 ATMEGA328P");
+
+  WiFi.begin(ssid,pass);
+
+  Serial.print("Connecting ");
+
+  while((!(WiFi.status() == WL_CONNECTED))){
+
+    delay(300);
+
+    Serial.print("...");
+
+  }
+
+  Serial.println(WiFi.status());
+
+  Serial.println("...");
+
+  dht.setup(2, DHTesp::DHT11); // Connect DHT sensor to GPIO 2 istead of 17
+
+}
+
+ 
+
+void loop() {
+
+  //String temperature = String(DHT.temperature, 1);
+
+  //String humidity = String(DHT.humidity, 1);
+
+  //String gas = String(map(analogRead(A0),0,1024,100,0));
+
+  //int chk = DHT.read11(DHT11_PIN);
+
+  delay(dht.getMinimumSamplingPeriod());
+
+ 
+
+  float humidity = dht.getHumidity();
+
+  float temperature = dht.getTemperature();
+
+ 
+
+  Serial.print(dht.getStatusString());
+
+  Serial.print("\t");
+
+  Serial.print(humidity, 1);
+
+  Serial.print("\t\t");
+
+  Serial.print(temperature, 1);
+
+  Serial.print("\t\t");
+
+  Serial.print(dht.toFahrenheit(temperature), 1);
+
+  Serial.print("\t\t");
+
+  Serial.print(dht.computeHeatIndex(temperature, humidity, false), 1);
+
+  Serial.print("\t\t");
+
+  Serial.println(dht.computeHeatIndex(dht.toFahrenheit(temperature), humidity, true), 1);
+
+  //read temperature and humidity
+
+  String json = "{\"device_id\":\""+yourDevice+"\",\"data\":{\"Temperature\":\""+temperature+"\",\"Humidity\":\""+humidity+"\",\"chk\":\""+0+"\"}}";
+
+  Serial.println(json);
+
+  if (client.connect(server, 1212)) {
+
+    client.println(json);
+
+  }
+
+  // This is a return from the server ....
+
+  while (client.available()) {
+
+    char c = client.read();
+
+    Serial.write(c);
+
+  }
+
+//
+
+  if (!client.connected()) {
+
+    client.stop();
+
+  }
+
+  delay(5000);
+
+}
